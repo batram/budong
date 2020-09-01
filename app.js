@@ -4,6 +4,7 @@ let solution_pos = 0
 let vocab
 let nextquiz
 let audio_map
+let syncHandler
 const timeout_setting = 2000
 const timeout_step = 50
 let timeout_counter = 0
@@ -13,6 +14,75 @@ window.onload = (x) => {
   window.menu_map = {}
   setup_menu()
   check_menu_hash()
+
+  let couchdb_url = get_couch_settings()
+  if (couchdb_url != "") {
+    couchdb_sync(couchdb_url)
+  }
+
+  reset_couch_settings()
+  couch_input.parentElement
+    .querySelector('input[value="save"]')
+    .addEventListener("click", save_couch_settings)
+  couch_input.parentElement
+    .querySelector('input[value="cancel"]')
+    .addEventListener("click", reset_couch_settings)
+}
+
+function couchdb_sync(couchdb_url) {
+  var remoteDB = new PouchDB(couchdb_url)
+  if (syncHandler) {
+    syncHandler.cancel()
+  }
+  syncHandler = db.sync(remoteDB, {
+    live: true,
+    retry: true,
+  })
+  console.log(syncHandler)
+
+  syncHandler
+    .on("change", function (event) {
+      // yo, something changed!
+      console.log("pouch change", event)
+      event.change.docs.forEach((doc) => {
+        console.log("update", doc._id)
+        switch (doc._id) {
+          case "hits":
+            fill_export()
+            if(location.hash == '#progress'){
+              update_progress()
+            }
+            break
+        }
+      })
+    })
+    .on("error", function (err) {
+      // yo, we got an error! (maybe the user went offline?)
+      console.log("pouch err", err)
+    })
+    .on("complete", function (info) {
+      console.log("pouch sync stopped", info)
+    })
+}
+
+function save_couch_settings() {
+  let couchdb_url = couch_input.value
+  if (get_couch_settings() != couchdb_url) {
+    couchdb_sync(couchdb_url)
+    localStorage.setItem("couch_url", couchdb_url)
+  }
+}
+
+function get_couch_settings() {
+  let couch_url = localStorage.getItem("couch_url")
+  if (couch_url == null) {
+    couch_url = ""
+  }
+  return couch_url
+}
+
+function reset_couch_settings() {
+  couch_input.value = get_couch_settings()
 }
 
 function shuffle(a) {
@@ -100,7 +170,7 @@ function generate_answers() {
   let answers = []
   let tries = 0
 
-  while (answers.length < 4 && tries <= 100) {
+  while (answers.length < 4 && tries <= 200) {
     if (answers.length == solution_pos) {
       answers.push(vocab[index])
     } else {
@@ -204,7 +274,8 @@ function update_hitbar() {
 
 function save_result(id, hit, miss) {
   get_hitlist().then((hitlist) => {
-    let hits = [hitlist[id][0] + hit, hitlist[id][1] + miss]
+    let hits = hitlist[id] || [0, 0]
+    hits = [hits[0] + hit, hits[1] + miss]
     hitlist[id] = hits
 
     db.get("hits")
@@ -276,7 +347,7 @@ function init(val) {
 
   get_hitlist().then((hitlist) => {
     val = val.filter((x) => {
-      let hits = hitlist[x.id]
+      let hits = hitlist[x.id] || [0.0]
       return (hits[0] == 0 && hits[1] == 0) || hits[1] != 0
     })
     vocab = shuffle(val)
@@ -366,6 +437,10 @@ function settings() {
   document.querySelector("#progress").style.display = "none"
   document.querySelector("#settings").style.display = "block"
 
+  fill_export()
+}
+
+function fill_export() {
   get_hitlist().then((hitlist) => {
     let json = JSON.stringify(hitlist)
     exarea.value = json
@@ -425,8 +500,8 @@ function style_syms(hitlist, vocs, hskbox, hanzi = true) {
       ci.innerText = voc.hanzi
     }
     let hits = [0, 0]
-    if(hitlist.hasOwnProperty(voc.id)){
-      hits = hitlist[voc.id] 
+    if (hitlist.hasOwnProperty(voc.id)) {
+      hits = hitlist[voc.id]
     }
     if (hits[0] + hits[1] != 0) {
       let percent = (hits[1] / (hits[0] + hits[1])) * 100
@@ -444,11 +519,8 @@ function style_syms(hitlist, vocs, hskbox, hanzi = true) {
   })
 }
 
-function show_progress() {
+function update_progress() {
   get_hitlist().then((hitlist) => {
-    document.body.style.backgroundColor = ""
-    document.querySelector("#msec").style.display = "none"
-    document.querySelector("#progress").style.display = "block"
     ;[1, 2, 3, 4, 5, 6].forEach((i) => {
       let hskbox = document.querySelector("#HSK" + i)
       let small_group_HSK = document.querySelector("#small_group_HSK" + i)
@@ -509,4 +581,12 @@ function show_progress() {
       }
     })
   })
+}
+
+function show_progress() {
+  document.body.style.backgroundColor = ""
+  document.querySelector("#msec").style.display = "none"
+  document.querySelector("#progress").style.display = "block"
+
+  update_progress()
 }

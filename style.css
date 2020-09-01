@@ -110,6 +110,12 @@ html {
   font-size: 25px;
 }
 
+#settings #couch_input {
+  display: block;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
 .hskbox {
   display: grid;
   grid-template-columns: repeat(auto-fill, 100px);
