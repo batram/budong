@@ -126,8 +126,8 @@ html {
 
 #small_group_HSK1 {
   width: 75px;
-  float: left;
   background: #807c0063;
+  grid-area: hsk1;
 }
 
 #small_group_HSK1 .small_hsk_title {
@@ -137,7 +137,7 @@ html {
 
 #small_group_HSK2 {
   width: 75px;
-  float: left;
+  grid-area: hsk2;
   background: #005eeb63;
 }
 
@@ -148,7 +148,7 @@ html {
 
 #small_group_HSK3 {
   width: 150px;
-  float: left;
+  grid-area: hsk3;
   background: #ff000063;
 }
 
@@ -159,29 +159,32 @@ html {
 
 #small_group_HSK4 {
   width: 300px;
-  clear: both;
+  grid-area: hsk4;
   background: #ff088573;
 }
 
 #small_group_HSK5 {
   width: 300px;
-  float: left;
+  grid-area: hsk5;
   background: #607d8b;
 }
 
 #small_group_HSK6 {
   width: 300px;
-  float: left;
-  margin-top: -120px;
+  grid-area: hsk6;
   background: #3f51b59e;
 }
 
 #smallboxes {
-  display: block;
   margin: auto;
   width: 600px;
-  height: 300px;
   margin-bottom: 20px;
+  display: grid;
+  grid-template-areas:
+    "hsk1 hsk2 hsk3 hsk3 hsk6 hsk6 hsk6 hsk6"
+    "hsk4 hsk4 hsk4 hsk4 hsk6 hsk6 hsk6 hsk6"
+    "hsk5 hsk5 hsk5 hsk5 hsk6 hsk6 hsk6 hsk6"
+    "hsk5 hsk5 hsk5 hsk5 hsk6 hsk6 hsk6 hsk6";
 }
 
 .small_hskbox {
