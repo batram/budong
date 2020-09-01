@@ -7,6 +7,7 @@ let audio_map
 const timeout_setting = 2000
 const timeout_step = 50
 let timeout_counter = 0
+let db = new PouchDB("budong")
 
 window.onload = (x) => {
   window.menu_map = {}
@@ -30,12 +31,12 @@ function solve(pick) {
   play_sound(msec.dataset.sym)
 
   if (solution_pos != pick) {
-    save_result(0, 1)
+    save_result(vocab[index].id, 0, 1)
     document.body.style.background =
       "linear-gradient(rgba(128, 0, 0, 0.6), rgba(0, 0, 0, 0.0) 30%)"
     nextquiz = setTimeout(quiz, timeout_setting * 2)
   } else {
-    save_result(1, 0)
+    save_result(vocab[index].id, 1, 0)
     document.body.style.background =
       "linear-gradient(rgba(0, 128, 0, 0.6), rgba(0, 0, 0, 0.0) 30%)"
     nextquiz = setTimeout(quiz, timeout_setting)
@@ -170,32 +171,72 @@ function quiz_sym_pin() {
 }
 
 function get_hits(id) {
-  let hits = localStorage.getItem("hit" + id)
-  try {
-    hits = JSON.parse(hits)
-  } finally {
-    if (!Array.isArray(hits)) {
-      hits = [0, 0]
-    }
-  }
+  return db
+    .get("hits")
+    .then(function (doc) {
+      if (doc.list.hasOwnProperty(id)) {
+        return doc.list[id]
+      } else {
+        return [0, 0]
+      }
+    })
+    .catch(function (err) {
+      return [0, 0]
+    })
+}
 
-  return hits
+function get_hitlist() {
+  return db
+    .get("hits")
+    .then(function (doc) {
+      return doc.list
+    })
+    .catch(function (err) {
+      return {}
+    })
 }
 
 function update_hitbar() {
-  let hits = get_hits(vocab[index].id)
-  paint_hitshits(hits)
+  get_hits(vocab[index].id).then((hits) => {
+    paint_hitshits(hits)
+  })
 }
 
-function save_result(hit, miss) {
-  let hits = get_hits(vocab[index].id)
-  hits = [hits[0] + hit, hits[1] + miss]
-  localStorage.setItem("hit" + vocab[index].id, JSON.stringify(hits))
-  paint_hitshits(hits)
+function save_result(id, hit, miss) {
+  get_hitlist().then((hitlist) => {
+    let hits = [hitlist[id][0] + hit, hitlist[id][1] + miss]
+    hitlist[id] = hits
+
+    db.get("hits")
+      .then()
+      .then(function (hits) {
+        hits.list = hitlist
+        db.put(hits)
+          .then(function (x) {
+            console.log(x)
+          })
+          .catch(function (err) {
+            console.log(err)
+          })
+      })
+      .catch(function (err) {
+        if (err == 404) {
+          db.put({ _id: "hits", list: hitlist })
+            .then(function (x) {
+              console.log(x)
+            })
+            .catch(function (err) {
+              console.log(err)
+            })
+        }
+        console.log(err)
+      })
+
+    paint_hitshits(hits)
+  })
 }
 
 function paint_hitshits(hits) {
-  console.log("hits", hits)
   if (hits[0] + hits[1] != 0) {
     let percent = (hits[1] / (hits[0] + hits[1])) * 100
     hitbar.style.background = ""
@@ -232,15 +273,16 @@ function quiz() {
 
 function init(val) {
   index = -1
-  val = val.filter((x) => {
-    let hits = get_hits(x.id)
-    console.log(x, hits)
-    return (hits[0] == 0 && hits[1] == 0) || hits[1] != 0
-  })
-  vocab = shuffle(val)
-  console.log(vocab)
 
-  quiz()
+  get_hitlist().then((hitlist) => {
+    val = val.filter((x) => {
+      let hits = hitlist[x.id]
+      return (hits[0] == 0 && hits[1] == 0) || hits[1] != 0
+    })
+    vocab = shuffle(val)
+
+    quiz()
+  })
 }
 
 fetch("data/flac/key.json").then((x) => {
@@ -288,15 +330,14 @@ function menu_heighlight(el) {
 }
 
 function setup_menu() {
-  add_menu_button("ex/import 进出口", export_localstorage, "export")
+  add_menu_button("settings (设定?)", settings, "settings")
   add_menu_button("progress 进步", show_progress, "progress")
   ;[1, 2, 3, 4, 5, 6].forEach((i) => {
     add_menu_button(
       "HSK" + i,
       (x) => {
-        location.hash = "HSK" + i
         document.querySelector("#msec").style.display = "block"
-        document.querySelector("#export").style.display = "none"
+        document.querySelector("#settings").style.display = "none"
         document.querySelector("#progress").style.display = "none"
         document.querySelector("#content").style.display = ""
 
@@ -318,24 +359,17 @@ function check_menu_hash() {
   }
 }
 
-function export_localstorage() {
-  location.hash = "export"
+function settings() {
   document.body.style.backgroundColor = ""
   document.querySelector("#content").style.display = "none"
   document.querySelector("#msec").style.display = "block"
   document.querySelector("#progress").style.display = "none"
-  document.querySelector("#export").style.display = "block"
-  ex_title.innerText = "Export"
+  document.querySelector("#settings").style.display = "block"
 
-  let map = new Map()
-  for (i in localStorage) {
-    if (i.startsWith("hit")) {
-      map[i] = localStorage[i]
-    }
-  }
-  let json = JSON.stringify(map)
-  console.log(json)
-  exarea.value = json
+  get_hitlist().then((hitlist) => {
+    let json = JSON.stringify(hitlist)
+    exarea.value = json
+  })
 }
 
 copy_export.onclick = (x) => {
@@ -346,20 +380,41 @@ copy_export.onclick = (x) => {
 
 import_export.onclick = (x) => {
   let json_im = JSON.parse(exarea.value)
-  for (i in json_im) {
-    localStorage.setItem(i, json_im[i])
-  }
+
+  db.get("hits")
+    .then()
+    .then(function (hits) {
+      hits.list = json_im
+      db.put(hits)
+        .then(function (x) {
+          console.log(x)
+        })
+        .catch(function (err) {
+          console.log(err)
+        })
+    })
+    .catch(function (err) {
+      if (err == 404) {
+        db.put({ _id: "hits", list: json_im })
+          .then(function (x) {
+            console.log(x)
+          })
+          .catch(function (err) {
+            console.log(err)
+          })
+      }
+      console.log(err)
+    })
+
   alert("import should be done\n我希望如此")
 }
 
 cancel_export.onclick = (x) => {
-  document.querySelector("#export").style.display = "none"
+  document.querySelector("#settings").style.display = "none"
   document.querySelector("#content").style.display = ""
 }
 
-function update_progress() {}
-
-function style_syms(vocs, hskbox, hanzi = true) {
+function style_syms(hitlist, vocs, hskbox, hanzi = true) {
   hskbox.innerHTML = ""
   let ci = document.createElement("div")
   vocs.forEach((voc) => {
@@ -369,7 +424,10 @@ function style_syms(vocs, hskbox, hanzi = true) {
     if (hanzi) {
       ci.innerText = voc.hanzi
     }
-    let hits = get_hits(voc.id)
+    let hits = [0, 0]
+    if(hitlist.hasOwnProperty(voc.id)){
+      hits = hitlist[voc.id] 
+    }
     if (hits[0] + hits[1] != 0) {
       let percent = (hits[1] / (hits[0] + hits[1])) * 100
       ci.style.backgroundImage =
@@ -387,60 +445,68 @@ function style_syms(vocs, hskbox, hanzi = true) {
 }
 
 function show_progress() {
-  location.hash = "progress"
-
-  document.body.style.backgroundColor = ""
-  document.querySelector("#msec").style.display = "none"
-  document.querySelector("#progress").style.display = "block"
-  ;[1, 2, 3, 4, 5, 6].forEach((i) => {
-    let hskbox = document.querySelector("#HSK" + i)
-    let small_group_HSK = document.querySelector("#small_group_HSK" + i)
-    if (!hskbox) {
-      hskbox = document.createElement("div")
-      hskbox.id = "HSK" + i
-      hskbox.classList.add("hskbox")
-      let title = document.createElement("h2")
-      title.innerText = "HSK" + i
-      title.id = "HSKt" + i
-      title.classList.add("hsk_title")
-      document.querySelector("#progress").appendChild(title)
-      document.querySelector("#progress").appendChild(hskbox)
-    }
-    if (!small_group_HSK) {
-      small_group_HSK = document.createElement("div")
-      small_group_HSK.onclick = (x) => {
-        location.href = "#HSKt" + i
+  get_hitlist().then((hitlist) => {
+    document.body.style.backgroundColor = ""
+    document.querySelector("#msec").style.display = "none"
+    document.querySelector("#progress").style.display = "block"
+    ;[1, 2, 3, 4, 5, 6].forEach((i) => {
+      let hskbox = document.querySelector("#HSK" + i)
+      let small_group_HSK = document.querySelector("#small_group_HSK" + i)
+      if (!hskbox) {
+        hskbox = document.createElement("div")
+        hskbox.id = "HSK" + i
+        hskbox.classList.add("hskbox")
+        let title = document.createElement("h2")
+        title.innerText = "HSK" + i
+        title.id = "HSKt" + i
+        title.classList.add("hsk_title")
+        document.querySelector("#progress").appendChild(title)
+        document.querySelector("#progress").appendChild(hskbox)
       }
-      small_group_HSK.id = "small_group_HSK" + i
-      small_group_HSK.classList.add("small_hskgroup")
-      small_hskbox = document.createElement("div")
-      small_hskbox.id = "small_hskbox_HSK" + i
-      small_hskbox.classList.add("small_hskbox")
-      let title = document.createElement("h2")
-      title.innerText = "HSK" + i
-      title.classList.add("small_hsk_title")
-      small_group_HSK.appendChild(small_hskbox)
-      small_group_HSK.appendChild(title)
-      document.querySelector("#smallboxes").appendChild(small_group_HSK)
-    }
-
-    if (vocab_map.has(i)) {
-      let vocs = vocab_map[i]
-      style_syms(vocs, hskbox)
-      style_syms(vocs, small_group_HSK.querySelector(".small_hskbox"), false)
-    } else {
-      fetch("data/hsk-level-" + i + ".json").then((x) => {
-        if (x.ok) {
-          x.json().then((vocs) => {
-            style_syms(vocs, hskbox)
-            style_syms(
-              vocs,
-              small_group_HSK.querySelector(".small_hskbox"),
-              false
-            )
-          })
+      if (!small_group_HSK) {
+        small_group_HSK = document.createElement("div")
+        small_group_HSK.onclick = (x) => {
+          location.href = "#HSKt" + i
         }
-      })
-    }
+        small_group_HSK.id = "small_group_HSK" + i
+        small_group_HSK.classList.add("small_hskgroup")
+        small_hskbox = document.createElement("div")
+        small_hskbox.id = "small_hskbox_HSK" + i
+        small_hskbox.classList.add("small_hskbox")
+        let title = document.createElement("h2")
+        title.innerText = "HSK" + i
+        title.classList.add("small_hsk_title")
+        small_group_HSK.appendChild(small_hskbox)
+        small_group_HSK.appendChild(title)
+        document.querySelector("#smallboxes").appendChild(small_group_HSK)
+      }
+
+      if (vocab_map.has(i)) {
+        let vocs = vocab_map[i]
+        style_syms(hitlist, vocs, hskbox)
+        style_syms(
+          hitlist,
+          vocs,
+          small_group_HSK.querySelector(".small_hskbox"),
+          false
+        )
+      } else {
+        fetch("data/hsk-level-" + i + ".json").then((x) => {
+          if (x.ok) {
+            x.json().then((vocs) => {
+              vocab_map[i] = vocs
+
+              style_syms(hitlist, vocs, hskbox)
+              style_syms(
+                hitlist,
+                vocs,
+                small_group_HSK.querySelector(".small_hskbox"),
+                false
+              )
+            })
+          }
+        })
+      }
+    })
   })
 }

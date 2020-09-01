@@ -99,9 +99,15 @@ html {
   margin-bottom: 5px;
 }
 
-#export {
+#settings {
   display: none;
   padding: 10px 20px;
+}
+
+#settings .title {
+  padding: 5px 0;
+  margin-top: 10px;
+  font-size: 25px;
 }
 
 .hskbox {

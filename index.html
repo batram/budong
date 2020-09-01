@@ -31,12 +31,14 @@
           </div>
         </div>
       </div>
-      <div id="export">
-        <div class="title" id="ex_title">Export</div>
-        <textarea id="exarea"></textarea>
-        <input type="button" value="copy" id="copy_export" />
-        <input type="button" value="import" id="import_export" />
-        <input type="button" value="cancel" id="cancel_export" />
+      <div id="settings">
+        <div>
+          <div class="title">Export:</div>
+          <textarea id="exarea"></textarea>
+          <input type="button" value="copy" id="copy_export" />
+          <input type="button" value="import" id="import_export" />
+          <input type="button" value="cancel" id="cancel_export" />  
+        </div>
       </div>
       <div id="timerbar"></div>
     </div>
@@ -44,5 +46,6 @@
       <div id="smallboxes"></div>
     </div>
   </body>
+  <script src="js/pouchdb.min.js"></script>
   <script src="app.js"></script>
 </html>
