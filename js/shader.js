@@ -107,7 +107,7 @@ function main(chars_svg, start_color = "green") {
   {
     fragCoord.x -= mod(fragCoord.x, 32.);
     float rando = texture(iChannel1, vec2((fragCoord.x / iResolution.x) , fragCoord.x)).x;
-    float speed = (rando * .5) + .1 ;
+    float speed = (rando * .3) + .1 ;
 
     float y = fract(fragCoord.y / iResolution.y + iTime * speed + rando);
     return color / (y * 20.);
@@ -119,7 +119,7 @@ function main(chars_svg, start_color = "green") {
     vec2 uv = fract(fragCoord.xy / 32.);
     vec2 block = fragCoord * scale - uv;
     uv = uv * .9 + .001; // scale the letters up a bit
-    uv += floor(texture(iChannel1, block/vec2(256.0, 256.0) + iTime*.002).xy * 16.); // randomize letters
+    uv += floor(texture(iChannel1, block/vec2(256.0, 256.0) + iTime*.0005).xy * 16.); // randomize letters
     uv *= 1. / 16.; // bring back into 0-1 range
     return texture(iChannel0, uv).r;
   }
