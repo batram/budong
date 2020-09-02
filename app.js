@@ -1,10 +1,10 @@
+
 let index = -1
 let vocab_map = new Map()
 let solution_pos = 0
 let vocab
 let results = []
 let nextquiz
-let audio_map
 let syncHandler
 const timeout_setting = 2000
 const timeout_step = 50
@@ -24,6 +24,11 @@ let quizes = [quiz_sym_eng, quiz_eng_sym, quiz_sym_pin]
 let limit = 100
 
 window.onload = (x) => {
+  import("./js/shader.js").then( mod => {
+    window.shader = mod
+    console.log(window.shader)
+  })
+
   window.menu_map = {}
   setup_menu()
   check_menu_hash()
@@ -120,15 +125,23 @@ function solve(pick) {
     let wrong_id = buttons[pick].dataset.id
     results.push({ picked: wrong_id, real: vocab[index].id })
     save_result(vocab[index].id, 0, 1)
-    document.body.style.background =
-      "linear-gradient(rgba(128, 0, 0, 0.6), rgba(0, 0, 0, 0.0) 30%)"
+    shader.generate_chars_svg().then((url) => {
+      shader.main(url, "red")
+      document.body.style.background =
+        "linear-gradient(rgba(128, 0, 0, 0.6), rgba(0, 0, 0, 0.0) 30%)"
+      c.style.visibility = ""
+    })
     nextquiz = setTimeout(quiz, timeout_setting * 2)
   } else {
     //correct solution
     save_result(vocab[index].id, 1, 0)
     results.push({ picked: vocab[index].id, real: vocab[index].id })
-    document.body.style.background =
-      "linear-gradient(rgba(0, 128, 0, 0.6), rgba(0, 0, 0, 0.0) 30%)"
+    shader.generate_chars_svg().then((url) => {
+      document.body.style.background =
+        "linear-gradient(rgba(0, 128, 0, 0.6), rgba(0, 0, 0, 0.0) 30%)"
+      shader.main(url, "green")
+      c.style.visibility = ""
+    })
     nextquiz = setTimeout(quiz, timeout_setting)
   }
 
@@ -174,8 +187,8 @@ document.addEventListener("keyup", (e) => {
 })
 
 function play_sound(sym) {
-  if (audio_map.hasOwnProperty(sym)) {
-    var audio = new Audio("data/flac/" + audio_map[sym])
+  if (window.audio_map.hasOwnProperty(sym)) {
+    var audio = new Audio("data/flac/" + window.audio_map[sym])
     audio.play()
   } else {
     console.log("no audio for", sym)
@@ -364,6 +377,8 @@ function start_quiz() {
 function quiz() {
   show_panel(quiz_panel)
 
+  c.style.visibility = "hidden"
+
   timerbar.style.visibility = "hidden"
   timerbar.style.width = 0 + "%"
   if (index < vocab.length - 1 && index < limit - 1) {
@@ -392,6 +407,8 @@ function show_panel(panel) {
 function show_start_panel() {
   show_panel(start_panel)
   i = quiz_panel.dataset.qid
+  c.style.visibility = "hidden"
+  document.body.style.background = ""
 
   document.querySelector("#start_panel .title").innerText =
     "HSK" + i + " - options"
@@ -487,6 +504,7 @@ function uninit(x, hitlist) {
 
 function show_end_panel() {
   show_panel(end_panel)
+  c.style.visibility = ""
 
   hit_count.innerText =
     "Hits: " +
@@ -515,8 +533,7 @@ function init(val, i) {
 fetch("data/flac/key.json").then((x) => {
   if (x.ok) {
     x.json().then((val) => {
-      console.log(val)
-      audio_map = val
+      window.audio_map = val
     })
   }
 })
@@ -567,7 +584,9 @@ function setup_menu() {
         document.querySelector("#settings").style.display = "none"
         document.querySelector("#progress").style.display = "none"
         document.querySelector("#content").style.display = ""
-
+        c.style.visibility = "hidden"
+        document.body.style.background = ""
+      
         load_hsk(i)
       },
       "HSK" + i
@@ -592,6 +611,8 @@ function settings() {
   document.querySelector("#msec").style.display = "block"
   document.querySelector("#progress").style.display = "none"
   document.querySelector("#settings").style.display = "block"
+  c.style.visibility = "hidden"
+  document.body.style.background = ""
 
   fill_export()
 }
@@ -743,6 +764,8 @@ function show_progress() {
   document.body.style.backgroundColor = ""
   document.querySelector("#msec").style.display = "none"
   document.querySelector("#progress").style.display = "block"
+  c.style.visibility = "hidden"
+  document.body.style.background = ""
 
   update_progress()
 }

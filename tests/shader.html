@@ -1,0 +1,40 @@
+<html>
+  <head>
+    <base href="..">
+    <style>
+      body,
+      html {
+        background: linear-gradient(rgba(128, 0, 0, 0.6), rgba(0, 0, 0, 0) 30%);
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+      
+      #c {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+ 
+      }
+
+      body {
+        background: #282a36;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <script>
+      ;(async () => {
+        // import module for side effects
+        const shader = await import("./js/shader.js")
+
+        shader.generate_chars_svg().then((url) => {
+          shader.main(url, "red")
+        })
+      })()
+    </script>
+  </body>
+</html>

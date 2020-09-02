@@ -1,0 +1,17 @@
+<html>
+  <head>
+    <base href=".." />
+  </head>
+  <body></body>
+</html>
+
+<script>
+  ;(async () => {
+    // import module for side effects
+    const shader = await import("./js/shader.js")
+    shader.generate_chars_svg().then((url) => {
+      console.log(url)
+      document.body.innerHTML = "<img src='" + url + "'>"
+    })
+  })()
+</script>
