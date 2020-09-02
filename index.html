@@ -11,23 +11,69 @@
         <div id="hit_filler"></div>
       </div>
       <div id="content">
-        <div class="title" id="quiz_title"></div>
-        <div id="buttons">
-          <div class="btn">
-            1
-            <p class="answ"></p>
+        <div id="start_panel" class="panel">
+          <div class="title">Quiz settings</div>
+          <div id="start_buttons">
+            <div class="option" id="quiz_types">
+              types:
+            </div>
+            <div class="option" id="items_select">
+              <div id="select_title">select items:</div>
+              <select id="filter_selector">
+              </select>
+            </div>
+            <div class="option" id="items_sort">
+              <div id="sort_title">sort items:</div>
+              <select id="sort_selector">
+              </select>
+            </div>
+            <div class="option" id="items_limit">
+              <div id="limit_title">limit items:</div>
+              <input id="limit_input" value="100">
+            </div>
+            <div class="btn" id="start_button">
+              Start
+            </div>
           </div>
-          <div class="btn">
-            2
-            <p class="answ"></p>
+        </div>
+
+        <div id="quiz_panel" class="panel">
+          <div class="title" id="quiz_title"></div>
+          <div id="buttons">
+            <div class="btn">
+              1
+              <p class="answ"></p>
+            </div>
+            <div class="btn">
+              2
+              <p class="answ"></p>
+            </div>
+            <div class="btn">
+              3
+              <p class="answ"></p>
+            </div>
+            <div class="btn">
+              4
+              <p class="answ"></p>
+            </div>
           </div>
-          <div class="btn">
-            3
-            <p class="answ"></p>
-          </div>
-          <div class="btn">
-            4
-            <p class="answ"></p>
+        </div>
+
+        <div id="end_panel" class="panel">
+          <div class="title">Results: </div>
+          <div id="end_options">
+            <div class="btn" id="hit_count">
+              Hits:
+            </div>
+            <div class="btn" id="miss_count">
+              Misses: 
+            </div>
+            <div class="btn" id="change_options_button">
+              change options
+            </div>
+            <div class="btn" id="restart_button">
+              restart
+            </div>
           </div>
         </div>
       </div>

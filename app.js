@@ -2,6 +2,7 @@ let index = -1
 let vocab_map = new Map()
 let solution_pos = 0
 let vocab
+let results = []
 let nextquiz
 let audio_map
 let syncHandler
@@ -9,6 +10,18 @@ const timeout_setting = 2000
 const timeout_step = 50
 let timeout_counter = 0
 let db = new PouchDB("budong")
+
+let available_quizes = [quiz_sym_eng, quiz_eng_sym, quiz_sym_pin]
+let filters = [
+  all_items,
+  low_bobs_and_uninit,
+  uninit,
+  under_ten_hits,
+  under_five_hits,
+]
+let filterer = low_bobs_and_uninit
+let quizes = [quiz_sym_eng, quiz_eng_sym, quiz_sym_pin]
+let limit = 100
 
 window.onload = (x) => {
   window.menu_map = {}
@@ -49,7 +62,7 @@ function couchdb_sync(couchdb_url) {
         switch (doc._id) {
           case "hits":
             fill_export()
-            if(location.hash == '#progress'){
+            if (location.hash == "#progress") {
               update_progress()
             }
             break
@@ -100,18 +113,25 @@ function solve(pick) {
   msec.dataset.solved = "true"
   play_sound(msec.dataset.sym)
 
+  let buttons = document.querySelectorAll("#quiz_panel .btn")
+
   if (solution_pos != pick) {
+    //wrong solution
+    let wrong_id = buttons[pick].dataset.id
+    results.push({ picked: wrong_id, real: vocab[index].id })
     save_result(vocab[index].id, 0, 1)
     document.body.style.background =
       "linear-gradient(rgba(128, 0, 0, 0.6), rgba(0, 0, 0, 0.0) 30%)"
     nextquiz = setTimeout(quiz, timeout_setting * 2)
   } else {
+    //correct solution
     save_result(vocab[index].id, 1, 0)
+    results.push({ picked: vocab[index].id, real: vocab[index].id })
     document.body.style.background =
       "linear-gradient(rgba(0, 128, 0, 0.6), rgba(0, 0, 0, 0.0) 30%)"
     nextquiz = setTimeout(quiz, timeout_setting)
   }
-  let buttons = document.querySelectorAll(".btn")
+
   buttons.forEach((x, i) => {
     x.onclick = (x) => {
       console.log("noped")
@@ -152,8 +172,6 @@ document.addEventListener("keyup", (e) => {
     clearTimeout(nextquiz)
   }
 })
-
-let quizes = [quiz_sym_eng, quiz_eng_sym, quiz_sym_pin]
 
 function play_sound(sym) {
   if (audio_map.hasOwnProperty(sym)) {
@@ -202,11 +220,13 @@ function format_quiz(answer_format, title_format) {
   msec.dataset.solved = "false"
   quiz_title.innerText = title_format(vocab[index])
   msec.dataset.sym = vocab[index].hanzi
-  let buttons = document.querySelectorAll(".answ")
+  let answs = document.querySelectorAll("#quiz_panel .answ")
   console.log(index, vocab[index])
 
-  buttons.forEach((x, i) => {
-    x.parentElement.style.background = ""
+  answs.forEach((x, i) => {
+    let btn = x.parentElement
+    btn.style.background = ""
+    btn.dataset.id = answers[i].id
     x.innerText = answer_format(answers[i])
     x.parentElement.onclick = (x) => {
       solve(i)
@@ -318,14 +338,39 @@ function paint_hitshits(hits) {
   }
 }
 
+function start_quiz() {
+  index = -1
+  results = []
+
+  get_hitlist().then((hitlist) => {
+    let val = og_vocab.filter((x) => {
+      return filterer(x, hitlist)
+    })
+    vocab = shuffle(val)
+
+    quizes = available_quizes.filter((quiz_fun) => {
+      console.log(
+        "#check_" + quiz_fun.name,
+        document.querySelector("#check_" + quiz_fun.name).checked
+      )
+      return document.querySelector("#check_" + quiz_fun.name).checked
+    })
+    console.log(quizes)
+
+    quiz()
+  })
+}
+
 function quiz() {
+  show_panel(quiz_panel)
+
   timerbar.style.visibility = "hidden"
   timerbar.style.width = 0 + "%"
-  if (index < vocab.length - 1) {
+  if (index < vocab.length - 1 && index < limit - 1) {
     index += 1
 
     document.body.style.background = ""
-    let buttons = document.querySelectorAll(".btn")
+    let buttons = document.querySelectorAll("#quiz_panel .btn")
     buttons.forEach((x, i) => {
       x.style.fontWeight = ""
     })
@@ -333,27 +378,138 @@ function quiz() {
     update_hitbar()
     rando_quiz()
   } else {
-    console.log("done", index)
-    if (confirm("shuffle and go again?")) {
-      vocab = shuffle(vocab)
-      index = -1
-      quiz()
-    }
+    show_end_panel()
   }
 }
 
-function init(val) {
-  index = -1
-
-  get_hitlist().then((hitlist) => {
-    val = val.filter((x) => {
-      let hits = hitlist[x.id] || [0.0]
-      return (hits[0] == 0 && hits[1] == 0) || hits[1] != 0
-    })
-    vocab = shuffle(val)
-
-    quiz()
+function show_panel(panel) {
+  document.querySelectorAll(".panel").forEach((x) => {
+    x.style.display = "none"
   })
+  panel.style.display = "block"
+}
+
+function show_start_panel() {
+  show_panel(start_panel)
+  i = quiz_panel.dataset.qid
+
+  document.querySelector("#start_panel .title").innerText =
+    "HSK" + i + " - options"
+
+  available_quizes.forEach((fun) => {
+    let id = "check_" + fun.name
+    if (!document.querySelector("#" + id)) {
+      let type_div = document.createElement("div")
+      let check = document.createElement("input")
+      check.type = "checkbox"
+      check.setAttribute("checked", true)
+      check.id = id
+
+      let label = document.createElement("label")
+      label.setAttribute("for", id)
+      label.innerText = fun.name
+
+      type_div.appendChild(check)
+      type_div.appendChild(label)
+
+      quiz_types.appendChild(type_div)
+    }
+  })
+
+  filters.forEach((fun) => {
+    let id = "op_" + fun.name
+    if (!document.querySelector("#" + id)) {
+      let opt = document.createElement("option")
+      opt.value = fun.name
+      opt.id = id
+      opt.innerText = fun.name
+
+      filter_selector.appendChild(opt)
+    }
+  })
+
+  filter_selector.value = filterer.name
+
+  update_select_count()
+  filter_selector.onchange = (x) => {
+    let i = filters
+      .map((x) => {
+        return x.name
+      })
+      .indexOf(filter_selector.value)
+
+    if (i != -1) {
+      filterer = filters[i]
+      update_select_count()
+    }
+  }
+
+  limit_input.value = limit
+  limit_input.onchange = (x) => {
+    limit = parseInt(limit_input.value)
+  }
+
+  start_button.onclick = start_quiz
+}
+
+function update_select_count() {
+  get_hitlist().then((hitlist) => {
+    let test = og_vocab.filter((x) => {
+      return filterer(x, hitlist)
+    })
+    select_title.innerText = "select items (count: " + test.length + "):"
+  })
+}
+
+function under_ten_hits(x, hitlist) {
+  let hits = hitlist[x.id] || [0, 0]
+  return hits[0] + hits[1] < 10
+}
+
+function under_five_hits(x, hitlist) {
+  let hits = hitlist[x.id] || [0, 0]
+  return hits[0] + hits[1] < 5
+}
+
+function low_bobs_and_uninit(x, hitlist) {
+  let hits = hitlist[x.id] || [0, 0]
+  return (hits[0] == 0 && hits[1] == 0) || hits[1] != 0
+}
+
+function all_items() {
+  return true
+}
+
+function uninit(x, hitlist) {
+  let hits = hitlist[x.id] || [0, 0]
+  return hits[0] == 0 && hits[1] == 0
+}
+
+function show_end_panel() {
+  show_panel(end_panel)
+
+  hit_count.innerText =
+    "Hits: " +
+    results.filter((x) => {
+      return x.picked == x.real
+    }).length
+  miss_count.innerText =
+    "Misses: " +
+    results.filter((x) => {
+      return x.picked != x.real
+    }).length
+
+  change_options_button.onclick = (x) => {
+    show_start_panel()
+  }
+
+  restart_button.onclick = start_quiz
+}
+
+function init(val, i) {
+  quiz_panel.dataset.qid = i
+  og_vocab = val
+  show_start_panel()
 }
 
 fetch("data/flac/key.json").then((x) => {
@@ -367,14 +523,14 @@ fetch("data/flac/key.json").then((x) => {
 
 function load_hsk(i) {
   if (vocab_map.has(i)) {
-    init(vocab_map[i])
+    init(vocab_map[i], i)
   } else {
     let url = "data/hsk-level-" + i + ".json"
     fetch(url).then((x) => {
       if (x.ok) {
         x.json().then((val) => {
           vocab_map[i] = val
-          init(val)
+          init(val, i)
         })
       }
     })
