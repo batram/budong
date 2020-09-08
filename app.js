@@ -398,8 +398,12 @@ function quiz() {
 
   timerbar.style.visibility = "hidden"
   timerbar.style.width = 0 + "%"
-  if (index < vocab.length - 1 && index < limit - 1) {
+  let qcount = Math.min(vocab.length, limit)
+
+  if (index < qcount - 1) {
     index += 1
+
+    quiz_counter.innerText = "[ " + (index + 1) + " / " + qcount + " ]"
 
     document.body.style.background = ""
     let buttons = document.querySelectorAll("#quiz_panel .btn")
