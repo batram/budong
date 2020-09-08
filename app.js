@@ -618,13 +618,13 @@ function vocab_info(entry) {
   el.appendChild(hanzi)
 
   let pinyin = document.createElement("div")
-  pinyin.innerText = "(" + entry.pinyin + ")"
+  pinyin.innerText = entry.pinyin
   pinyin.classList.add("pinyin_info")
   el.appendChild(pinyin)
 
   let translation = document.createElement("div")
-  translation.innerText = "[" + entry.translations[0] + "]"
-  translation.classList.add("pinyin_info")
+  translation.innerText = entry.translations[0]
+  translation.classList.add("translate_info")
   el.appendChild(translation)
 
   el.title = entry.translations.join("\n")

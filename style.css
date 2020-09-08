@@ -275,6 +275,19 @@ body {
 
 #end_options .vocab_info div {
   padding: 4px;
+  flex: 1 1 0px;
+}
+
+#end_options .vocab_info .hanzi_info {
+  flex-basis: 20%;
+}
+
+#end_options .vocab_info .pinyin_info {
+  flex-basis: 30%;
+}
+
+#end_options .vocab_info .translate_info {
+  flex-basis: 50%;
 }
 
 #hit_count {
