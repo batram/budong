@@ -262,3 +262,25 @@ body {
 #quiz_counter {
   text-align: right;
 }
+
+#end_options .btn {
+  flex-direction: column;
+}
+
+#end_options .vocab_info {
+  font-size: 25px;
+  padding: 4px;
+  display: flex;
+}
+
+#end_options .vocab_info div {
+  padding: 4px;
+}
+
+#hit_count {
+  color: green;
+}
+
+#miss_count {
+  color: red;
+}

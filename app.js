@@ -124,7 +124,7 @@ function solve(pick) {
   if (solution_pos != pick) {
     //wrong solution
     let wrong_id = buttons[pick].dataset.id
-    results.push({ picked: wrong_id, real: vocab[index].id })
+    results.push({ picked: wrong_id, real: vocab[index] })
     save_result(vocab[index].id, 0, 1)
     shader.generate_chars_svg().then((url) => {
       shader.main(url, "red")
@@ -136,7 +136,7 @@ function solve(pick) {
   } else {
     //correct solution
     save_result(vocab[index].id, 1, 0)
-    results.push({ picked: vocab[index].id, real: vocab[index].id })
+    results.push({ picked: vocab[index].id, real: vocab[index] })
     shader.generate_chars_svg().then((url) => {
       document.body.style.background =
         "linear-gradient(rgba(0, 128, 0, 0.6), rgba(0, 0, 0, 0.0) 30%)"
@@ -197,9 +197,9 @@ document.addEventListener("keyup", (e) => {
       start_button.click()
     }
   } else if (active_panel == "end") {
-    if (e.key == "3" || e.key == "Escape") {
+    if (e.key == "1" || e.key == "Escape") {
       change_options_button.click()
-    } else if (e.key == "4" || e.key == " " || e.key == "Enter") {
+    } else if (e.key == "2" || e.key == " " || e.key == "Enter") {
       restart_button.click()
     }
   }
@@ -608,20 +608,63 @@ function uninit(x, hitlist) {
   return hits[0] == 0 && hits[1] == 0
 }
 
+function vocab_info(entry) {
+  let el = document.createElement("div")
+  el.classList.add("vocab_info")
+
+  let hanzi = document.createElement("div")
+  hanzi.innerText = entry.hanzi
+  hanzi.classList.add("hanzi_info")
+  el.appendChild(hanzi)
+
+  let pinyin = document.createElement("div")
+  pinyin.innerText = "(" + entry.pinyin + ")"
+  pinyin.classList.add("pinyin_info")
+  el.appendChild(pinyin)
+
+  let translation = document.createElement("div")
+  translation.innerText = "[" + entry.translations[0] + "]"
+  translation.classList.add("pinyin_info")
+  el.appendChild(translation)
+
+  el.title = entry.translations.join("\n")
+  return el
+}
+
 function show_end_panel() {
+  hit_vocab.innerHTML = ""
+  miss_vocab.innerHTML = ""
+
   show_panel(end_panel)
   c.style.visibility = ""
 
-  hit_count.innerText =
-    "Hits: " +
-    results.filter((x) => {
-      return x.picked == x.real
-    }).length
-  miss_count.innerText =
-    "Misses: " +
-    results.filter((x) => {
-      return x.picked != x.real
-    }).length
+  let hits = results.filter((x) => {
+    if (x.picked == x.real.id) {
+      hit_vocab.appendChild(vocab_info(x.real))
+      return x.real
+    }
+  })
+
+  let misses = results.filter((x) => {
+    if (x.picked != x.real.id) {
+      miss_vocab.appendChild(vocab_info(x.real))
+      return x.real
+    }
+  })
+
+  hit_count.innerText = "Hits: " + hits.length
+  if (hits.length == 0) {
+    hit_count.style.color = "inherit"
+  } else {
+    hit_count.style.color = ""
+  }
+
+  miss_count.innerText = "Misses: " + misses.length
+  if (misses.length == 0) {
+    miss_count.style.color = "inherit"
+  } else {
+    miss_count.style.color = ""
+  }
 
   change_options_button.onclick = (x) => {
     show_start_panel()
