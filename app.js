@@ -3,11 +3,13 @@ let vocab_map = new Map()
 let solution_pos = 0
 let vocab
 let results = []
+
 let nextquiz
-let syncHandler
 const timeout_setting = 2000
 const timeout_step = 50
 let timeout_counter = 0
+
+let syncHandler
 let db = new PouchDB("budong")
 
 let available_quizes = [quiz_sym_eng, quiz_eng_sym, quiz_sym_pin]
@@ -290,6 +292,67 @@ function quiz_sym_pin() {
   })
 }
 
+function pouch_get(id, fallback) {
+  return db
+    .get(id)
+    .then((doc) => {
+      return doc.list
+    })
+    .catch((err) => {
+      console.log("pouch_get err", err)
+      put_on_not_found(err, id, fallback, console.log)
+      return fallback
+    })
+}
+
+function put_on_not_found(err, id, value, callback) {
+  if (err.status == 404) {
+    db.put({
+      _id: id,
+      list: value,
+    }).then(callback)
+  }
+}
+
+function pouch_update(id, value, callback = () => {}) {
+  db.get(id)
+    .then((doc) => {
+      //stupid stringfy compare (does not always work)
+      //update only on difference
+      console.log(
+        JSON.stringify(doc.list) != JSON.stringify(value),
+        JSON.stringify(doc.list),
+        JSON.stringify(value)
+      )
+      if (JSON.stringify(doc.list) != JSON.stringify(value)) {
+        doc.list = value
+        return db.put(doc)
+      }
+    })
+    .then((x) => {
+      callback()
+    })
+    .catch((err) => {
+      console.log("pouch_set error:", err)
+      put_on_not_found(err, id, value, callback)
+    })
+}
+
+function pouch_set(id, value, callback) {
+  db.get(id)
+    .then((doc) => {
+      doc.list = value
+      return db.put(doc)
+    })
+    .then((x) => {
+      callback()
+    })
+    .catch((err) => {
+      console.log("pouch_set error:", err)
+      put_on_not_found(err, id, value, callback)
+    })
+}
+
 function get_hits(id) {
   return db
     .get("hits")
@@ -379,13 +442,17 @@ function start_quiz() {
     vocab = shuffle(val)
 
     quizes = available_quizes.filter((quiz_fun) => {
-      console.log(
-        "#check_" + quiz_fun.name,
-        document.querySelector("#check_" + quiz_fun.name).checked
-      )
       return document.querySelector("#check_" + quiz_fun.name).checked
     })
-    console.log(quizes)
+
+    //TODO: maybe only save on change
+    pouch_update("quiz_options", {
+      quizes: quizes.map((q) => {
+        return q.name
+      }),
+      filterer: filterer.name,
+      limit: limit,
+    })
 
     quiz()
   })
@@ -427,7 +494,18 @@ function show_panel(panel) {
   panel.dataset.active = "true"
 }
 
-function show_start_panel() {
+async function show_start_panel() {
+  let quiz_options = await pouch_get("quiz_options", {
+    quizes: quizes.map((q) => {
+      return q.name
+    }),
+    filterer: filterer.name,
+    limit: limit,
+  })
+
+  //TODO: get rid of global variables
+  limit = quiz_options.limit
+
   show_panel(start_panel)
   i = quiz_panel.dataset.qid
   c.style.visibility = "hidden"
@@ -442,7 +520,9 @@ function show_start_panel() {
       let type_div = document.createElement("div")
       let check = document.createElement("input")
       check.type = "checkbox"
-      check.setAttribute("checked", true)
+      if (quiz_options.quizes.includes(fun.name)) {
+        check.setAttribute("checked", true)
+      }
       check.id = id
 
       let label = document.createElement("label")
@@ -468,28 +548,31 @@ function show_start_panel() {
     }
   })
 
-  filter_selector.value = filterer.name
-
+  filter_selector.value = quiz_options.filterer
+  set_filter()
+  filter_selector.onchange = set_filter
   update_select_count()
-  filter_selector.onchange = (x) => {
-    let i = filters
-      .map((x) => {
-        return x.name
-      })
-      .indexOf(filter_selector.value)
 
-    if (i != -1) {
-      filterer = filters[i]
-      update_select_count()
-    }
-  }
-
-  limit_input.value = limit
+  limit_input.value = quiz_options.limit
   limit_input.onchange = (x) => {
     limit = parseInt(limit_input.value)
+    limit_input.value = parseInt(limit_input.value)
   }
 
   start_button.onclick = start_quiz
+}
+
+function set_filter() {
+  let i = filters
+    .map((filter) => {
+      return filter.name
+    })
+    .indexOf(filter_selector.value)
+
+  if (i != -1) {
+    filterer = filters[i]
+    update_select_count()
+  }
 }
 
 function update_select_count() {
