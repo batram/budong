@@ -4,6 +4,12 @@ html {
   padding: 0;
 }
 
+body {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+}
+
 .dark {
   --main-bg-color: #282a36;
   --second-bg-color: #383a59;
@@ -25,7 +31,6 @@ html {
 }
 
 #msec {
-  margin: auto;
   width: 500px;
   border: thin solid var(--border-color);
   background: var(--second-bg-color);
@@ -79,6 +84,9 @@ html {
   background: var(--second-bg-color);
   margin-bottom: 30px;
   display: flex;
+  min-width: 620px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 #menu div {
@@ -236,7 +244,7 @@ html {
   font-size: 25px;
 }
 
-#start_panel .title{
+#start_panel .title {
   padding: 5px 0;
 }
 

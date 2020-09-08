@@ -126,8 +126,6 @@ function main(chars_svg, start_color = "green") {
 
   void mainImage( out vec4 fragColor, in vec2 fragCoord )
   {    
-   // float text =text(fragCoord);
-   // fragColor = vec4(0,text,0.0,1.0);
     fragColor = vec4(text(fragCoord) * rain(fragCoord), fragCoord.y / iResolution.y / 2.);
   }
 

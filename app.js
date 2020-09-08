@@ -1,4 +1,3 @@
-
 let index = -1
 let vocab_map = new Map()
 let solution_pos = 0
@@ -24,7 +23,7 @@ let quizes = [quiz_sym_eng, quiz_eng_sym, quiz_sym_pin]
 let limit = 100
 
 window.onload = (x) => {
-  import("./js/shader.js").then( mod => {
+  import("./js/shader.js").then((mod) => {
     window.shader = mod
     console.log(window.shader)
   })
@@ -174,15 +173,33 @@ function timer() {
   }
 }
 
+function get_active_panel() {
+  let active_panel = document.querySelector(".panel[data-active='true']")
+  return active_panel.id.replace("_panel", "")
+}
+
 document.addEventListener("keyup", (e) => {
-  console.log(e)
-  if (e.key >= 1 && e.key <= 4) {
-    solve(e.key - 1)
-  } else if (e.key == " " && msec.dataset.solved == "true") {
-    clearTimeout(nextquiz)
-    quiz()
-  } else if (e.key == "Escape") {
-    clearTimeout(nextquiz)
+  let active_panel = get_active_panel()
+  console.log(active_panel, e)
+  if (active_panel == "quiz") {
+    if (e.key >= 1 && e.key <= 4) {
+      solve(e.key - 1)
+    } else if (e.key == " " && msec.dataset.solved == "true") {
+      clearTimeout(nextquiz)
+      quiz()
+    } else if (e.key == "Escape") {
+      clearTimeout(nextquiz)
+    }
+  } else if (active_panel == "start") {
+    if (e.key == " " || e.key == "Enter") {
+      start_button.click()
+    }
+  } else if (active_panel == "end") {
+    if (e.key == "3" || e.key == "Escape") {
+      change_options_button.click()
+    } else if (e.key == "4" || e.key == " " || e.key == "Enter") {
+      restart_button.click()
+    }
   }
 })
 
@@ -400,8 +417,10 @@ function quiz() {
 function show_panel(panel) {
   document.querySelectorAll(".panel").forEach((x) => {
     x.style.display = "none"
+    x.dataset.active = "false"
   })
   panel.style.display = "block"
+  panel.dataset.active = "true"
 }
 
 function show_start_panel() {
@@ -586,7 +605,7 @@ function setup_menu() {
         document.querySelector("#content").style.display = ""
         c.style.visibility = "hidden"
         document.body.style.background = ""
-      
+
         load_hsk(i)
       },
       "HSK" + i
