@@ -207,11 +207,26 @@ document.addEventListener("keyup", (e) => {
 
 function play_sound(sym) {
   if (window.audio_map.hasOwnProperty(sym)) {
-    var audio = new Audio("data/flac/" + window.audio_map[sym])
+    var audio = new Audio("data/audio/flac/" + window.audio_map[sym])
     audio.play()
   } else {
     console.log("no audio for", sym)
   }
+}
+
+function find_alt_by_len(vo, have) {
+  let len = vo.pinyin.split(" ").length
+
+  if (bin_vocab.hasOwnProperty(len) && bin_vocab[len].length > 1) {
+    let rando = Math.floor(Math.random() * bin_vocab[len].length)
+    let select = bin_vocab[len][rando]
+    if (!have.includes(select)) {
+      return select
+    }
+  }
+
+  let rando = Math.floor(Math.random() * og_vocab.length)
+  return og_vocab[rando]
 }
 
 function generate_answers() {
@@ -220,25 +235,15 @@ function generate_answers() {
   let answers = []
   let tries = 0
 
-  while (answers.length < 4 && tries <= 200) {
+  while (answers.length < 4 && tries <= 20) {
     if (answers.length == solution_pos) {
       answers.push(vocab[index])
     } else {
-      let rando = Math.floor(Math.random() * og_vocab.length)
+      let random_elem = find_alt_by_len(vocab[index], answers)
       tries += 1
-      if (
-        og_vocab[rando].id != vocab[index].id &&
-        !answers.includes(og_vocab[rando])
-      ) {
-        //check if same number of symbols
-        if (
-          og_vocab[rando].pinyin.split(" ").length ==
-          og_vocab[index].pinyin.split(" ").length ||
-          tries > 89
-        ) {
-          //TODO: maybe check type of word
-          answers.push(og_vocab[rando])
-        }
+      if (random_elem.id != vocab[index].id && !answers.includes(random_elem)) {
+        //TODO: maybe check type of word
+        answers.push(random_elem)
       }
     }
   }
@@ -252,7 +257,6 @@ function format_quiz(answer_format, title_format) {
   quiz_title.innerText = title_format(vocab[index])
   msec.dataset.sym = vocab[index].hanzi
   let answs = document.querySelectorAll("#quiz_panel .answ")
-  console.log(index, vocab[index])
 
   answs.forEach((x, i) => {
     let btn = x.parentElement
@@ -672,13 +676,26 @@ function show_end_panel() {
   restart_button.onclick = start_quiz
 }
 
+function bin_sort_vocab(inp) {
+  let binned_vocab = {}
+  inp.forEach((vo) => {
+    let len = vo.pinyin.split(" ").length
+    if (!binned_vocab.hasOwnProperty(len)) {
+      binned_vocab[len] = []
+    }
+    binned_vocab[len].push(vo)
+  })
+  return binned_vocab
+}
+
 function init(val, i) {
   quiz_panel.dataset.qid = i
   og_vocab = val
+  bin_vocab = bin_sort_vocab(val)
   show_start_panel()
 }
 
-fetch("data/flac/key.json").then((x) => {
+fetch("data/audio/flac_key.json").then((x) => {
   if (x.ok) {
     x.json().then((val) => {
       window.audio_map = val
