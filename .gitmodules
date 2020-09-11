@@ -1,3 +1,4 @@
 [submodule "data/hanyu"]
 	path = data/hanyu
 	url = https://github.com/batram/hanyu-shuiping-kaoshi
+	branch = pref
