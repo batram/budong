@@ -224,26 +224,25 @@ function generate_answers() {
     if (answers.length == solution_pos) {
       answers.push(vocab[index])
     } else {
-      let rando = Math.floor(Math.random() * vocab.length)
+      let rando = Math.floor(Math.random() * og_vocab.length)
       tries += 1
       if (
-        vocab[rando].id != vocab[index].id &&
-        !answers.includes(vocab[rando])
+        og_vocab[rando].id != vocab[index].id &&
+        !answers.includes(og_vocab[rando])
       ) {
         //check if same number of symbols
         if (
-          vocab[rando].pinyin.split(" ").length ==
-            vocab[index].pinyin.split(" ").length ||
+          og_vocab[rando].pinyin.split(" ").length ==
+          og_vocab[index].pinyin.split(" ").length ||
           tries > 89
         ) {
           //TODO: maybe check type of word
-          answers.push(vocab[rando])
+          answers.push(og_vocab[rando])
         }
       }
     }
   }
 
-  console.log(answers)
   return answers
 }
 
