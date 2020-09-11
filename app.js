@@ -691,7 +691,7 @@ function load_hsk(i) {
   if (vocab_map.has(i)) {
     init(vocab_map[i], i)
   } else {
-    let url = "data/hsk-level-" + i + ".json"
+    let url = "data/hanyu/json/hsk-level-" + i + ".json"
     fetch(url).then((x) => {
       if (x.ok) {
         x.json().then((val) => {
@@ -889,7 +889,7 @@ function update_progress() {
           false
         )
       } else {
-        fetch("data/hsk-level-" + i + ".json").then((x) => {
+        fetch("data/hanyu/json/hsk-level-" + i + ".json").then((x) => {
           if (x.ok) {
             x.json().then((vocs) => {
               vocab_map[i] = vocs
