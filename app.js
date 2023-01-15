@@ -211,6 +211,10 @@ function play_sound(sym) {
     audio.play()
   } else {
     console.log("no audio for", sym)
+    var uts = new SpeechSynthesisUtterance(sym)
+    uts.lang = 'zh-CN'
+    uts.rate = 1
+    speechSynthesis.speak(uts)
   }
 }
 
